@@ -93,3 +93,43 @@ app.post('/produtos', async (request, reply) => {
     reply.code(500).send({ message: 'Erro ao cadastrar produto', data: {}, error: true });
   }
 });
+
+// Listar clientes
+app.get('/clientes', async (request, reply) => {
+  try {
+    const clientes = await db('clientes');
+    reply.code(200).send({ message: 'Clientes listados', data: clientes, error: false });
+  } catch (err) {
+    reply.code(500).send({ message: 'Erro ao listar clientes', data: [], error: true });
+  }
+});
+
+// Buscar cliente
+app.get('/clientes/:id', async (request, reply) => {
+  const { id } = request.params;
+  try {
+    const cliente = await db('clientes').where({ id }).first();
+    if (cliente) {
+      reply.code(200).send({ message: 'Cliente encontrado', data: cliente, error: false });
+    } else {
+      reply.code(404).send({ message: 'Cliente não encontrado', data: {}, error: true });
+    }
+  } catch (err) {
+    reply.code(500).send({ message: 'Erro ao buscar cliente', data: {}, error: true });
+  }
+});
+
+// Cadastrar novo cliente
+app.post('/clientes', async (request, reply) => {
+  const { nome, email, cidade } = request.body;
+  try {
+    const [id] = await db('clientes').insert({ nome, email, cidade });
+    const novoCliente = await db('clientes').where({ id }).first();
+    reply.code(201).send({ message: 'Cliente cadastrado', data: novoCliente, error: false });
+  } catch (err) {
+    reply.code(500).send({ message: 'Erro ao cadastrar cliente', data: {}, error: true });
+  }
+});
+
+
+
