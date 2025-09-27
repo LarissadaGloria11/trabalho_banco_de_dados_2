@@ -131,5 +131,81 @@ app.post('/clientes', async (request, reply) => {
   }
 });
 
+// Listar pedidos com itens
+app.get('/pedidos', async (request, reply) => {
+  try {
+    const pedidos = await db('pedidos');
+
+    const pedidosComItens = await Promise.all(
+      pedidos.map(async (pedido) => {
+        const itens = await db('itens_pedidos').where({ id_pedido: pedido.id });
+        return { ...pedido, itens };
+      })
+    );
+
+    reply.code(200).send({ message: 'Pedidos listados', data: pedidosComItens, error: false });
+  } catch (err) {
+    reply.code(500).send({ message: 'Erro ao listar pedidos', data: [], error: true });
+  }
+});
+
+// Buscar pedido por ID com itens
+app.get('/pedidos/:id', async (request, reply) => {
+  const { id } = request.params;
+  try {
+    const pedido = await db('pedidos').where({ id }).first();
+    if (!pedido) {
+      return reply.code(404).send({ message: 'Pedido não encontrado', data: {}, error: true });
+    }
+
+    const itens = await db('itens_pedidos').where({ id_pedido: id });
+    reply.code(200).send({ message: 'Pedido encontrado', data: { ...pedido, itens }, error: false });
+  } catch (err) {
+    reply.code(500).send({ message: 'Erro ao buscar pedido', data: {}, error: true });
+  }
+});
+
+// Buscar pedidos por cidade
+app.get('/pedidos/cidade/:cidade', async (request, reply) => {
+  const { cidade } = request.params;
+  try {
+    const pedidos = await db('pedidos').where({}).join('clientes', 'pedidos.id_cliente', '=', 'clientes.id')
+      .where('clientes.cidade', cidade)
+      .select('pedidos.*');
+
+    const pedidosComItens = await Promise.all(
+      pedidos.map(async (pedido) => {
+        const itens = await db('itens_pedidos').where({ id_pedido: pedido.id });
+        return { ...pedido, itens };
+      })
+    );
+
+    reply.code(200).send({ message: `Pedidos da cidade ${cidade}`, data: pedidosComItens, error: false });
+  } catch (err) {
+    reply.code(500).send({ message: 'Erro ao buscar pedidos por cidade', data: [], error: true });
+  }
+});
+
+// Criar novo pedido com itens
+app.post('/pedidos', async (request, reply) => {
+  const { id_cliente, valor_total, itens } = request.body; // itens = [{id_produto, quantidade, preco_unitario}]
+
+  try {
+    const [id_pedido] = await db('pedidos').insert({ id_cliente, valor_total });
+    
+    // Inserir itens
+    const itensInserir = itens.map(item => ({ ...item, id_pedido }));
+    await db('itens_pedidos').insert(itensInserir);
+
+    const novoPedido = await db('pedidos').where({ id: id_pedido }).first();
+    const itensPedido = await db('itens_pedidos').where({ id_pedido });
+
+    reply.code(201).send({ message: 'Pedido criado', data: { ...novoPedido, itens: itensPedido }, error: false });
+  } catch (err) {
+    reply.code(500).send({ message: 'Erro ao criar pedido', data: {}, error: true });
+  }
+});
+
+
 
 
