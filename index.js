@@ -57,3 +57,39 @@ app.delete('/marcas/:id', async (request, reply) => {
   }
 });
 
+// Listar produtos
+app.get('/produtos', async (request, reply) => {
+  try {
+    const produtos = await db('produtos');
+    reply.code(200).send({ message: 'Produtos listados', data: produtos, error: false });
+  } catch (err) {
+    reply.code(500).send({ message: 'Erro ao listar produtos', data: [], error: true });
+  }
+});
+
+// Buscar produto
+app.get('/produtos/:id', async (request, reply) => {
+  const { id } = request.params;
+  try {
+    const produto = await db('produtos').where({ id }).first();
+    if (produto) {
+      reply.code(200).send({ message: 'Produto encontrado', data: produto, error: false });
+    } else {
+      reply.code(404).send({ message: 'Produto não encontrado', data: {}, error: true });
+    }
+  } catch (err) {
+    reply.code(500).send({ message: 'Erro ao buscar produto', data: {}, error: true });
+  }
+});
+
+// Cadastrar novo produto
+app.post('/produtos', async (request, reply) => {
+  const { nome, preco, estoque, id_marca } = request.body;
+  try {
+    const [id] = await db('produtos').insert({ nome, preco, estoque, id_marca });
+    const novoProduto = await db('produtos').where({ id }).first();
+    reply.code(201).send({ message: 'Produto cadastrado', data: novoProduto, error: false });
+  } catch (err) {
+    reply.code(500).send({ message: 'Erro ao cadastrar produto', data: {}, error: true });
+  }
+});
